@@ -1,7 +1,8 @@
 import json
+from urllib.request import urlopen
 from tkinter import *
 from tkinter import ttk, messagebox
-from urllib.request import urlopen
+from functools import partial
 
 
 class Conversor:
@@ -20,9 +21,20 @@ class Conversor:
         marco.rowconfigure(0, weight=1)
         marco['borderwidth'] = 2
         marco['relief'] = 'sunken'
+
+        # Obtener valor dolar oficial desde la API
+
+        url = 'https://www.dolarsi.com/api/api.php?type=dolar'
+        response = urlopen (url)
+        data = json.loads(response.read())
+        for d in data:
+            if d['casa']['nombre'] == 'Oficial':
+                dolarstr = d['casa']['compra']
+                dolar = float (dolarstr.replace(',','.'))
+
         self.__pesos = StringVar()
         self.__dolares = StringVar()
-        self.__dolares.trace('w', self.calcular)
+        self.__dolares.trace('w', partial(self.calcular, dolar))
         self.dolaresEntry = ttk.Entry (marco, textvariable=self.__dolares, width=10)
         self.dolaresEntry.grid (row=0, column=1, **opts)
         self.dolaresLbl = ttk.Label (marco, text='Dólares').grid (row=0, column=2, **opts)
@@ -35,15 +47,9 @@ class Conversor:
     def ejecutar (self):
         self.__ventana.mainloop()
 
-    def calcular (self, *args):
+    def calcular (self, dolar, *args):
         if self.dolaresEntry.get() != '':
-            url = 'https://www.dolarsi.com/api/api.php?type=dolar'
-            response = urlopen (url)
-            data = json.loads(response.read())
-            for d in data:
-                if d['casa']['nombre'] == 'Oficial':
-                    dolarstr = d['casa']['compra']
-                    dolar = float (dolarstr.replace(',','.'))
+            
             try:
                 value = float (self.dolaresEntry.get())
                 self.__pesos.set(f"{dolar*value:.2f}") 
